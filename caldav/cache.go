@@ -177,6 +177,12 @@ func (b *backend) loadCache(calID string, cc *calendarCache) {
 		cc.loading = false
 		cc.mu.Unlock()
 	}()
+	if calID == "" {
+		// Defensive: refuse to bootstrap/list against an empty calendar ID
+		// (malformed request paths used to land here).
+		log.Printf("cache: refusing to load empty calendar ID")
+		return
+	}
 
 	bootstrap, err := b.c.BootstrapCalendar(calID)
 	if err != nil {

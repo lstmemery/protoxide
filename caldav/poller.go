@@ -20,6 +20,14 @@ const calendarPollInterval = 30 * time.Second
 // only the affected events into the cache — avoiding the minutes-long full reload
 // for every inbound change. One poller runs per calendar; see cacheFor.
 func (b *backend) pollCalendar(calID string) {
+	if calID == "" {
+		// Defensive: an empty calendar ID would 404 on every Proton call below,
+		// and the seed failure would permanently disable delta sync for a
+		// calendar that doesn't exist. (Malformed request paths used to reach
+		// here via cacheFor.)
+		log.Printf("poller: refusing to start with empty calendar ID")
+		return
+	}
 	cursor, err := b.c.GetLatestCalendarModelEventID(calID)
 	if err != nil {
 		log.Printf("poller %s: could not seed cursor, delta sync disabled (falling back to periodic reload): %v", calID, err)
