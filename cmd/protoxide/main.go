@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
@@ -38,6 +39,7 @@ const (
 	defaultAPIEndpoint = "https://mail.proton.me/api"
 	torAPIEndpoint     = "https://mail.protonmailrmez3lotccipshtkleegetolb73fuirgj7r4o4vfu7ozyd.onion/api"
 	defaultAppVersion  = "Other"
+	apiHTTPTimeout     = 90 * time.Second
 )
 
 var (
@@ -50,7 +52,7 @@ var (
 
 func makeHTTPClientFromProxy(proxyArg string) (*http.Client, error) {
 	fmtProxy := ""
-	client := &http.Client{}
+	client := &http.Client{Timeout: apiHTTPTimeout}
 	if tor {
 		un, err := uuid.NewRandom()
 		if err != nil {
@@ -81,11 +83,16 @@ func makeHTTPClientFromProxy(proxyArg string) (*http.Client, error) {
 		Proxy: http.ProxyURL(proxy),
 	}
 
-	client = &http.Client{Transport: tr}
+	client = &http.Client{Transport: tr, Timeout: apiHTTPTimeout}
 	return client, nil
 }
 func newClient() *protonmail.Client {
-	httpClient := &http.Client{}
+	// Bound every API call, including reading the response body. Without a
+	// timeout a single connection that stalls server-side wedges the caller
+	// forever: the event loop and poller goroutines silently stop heartbeating
+	// for as long as the stall lasts, and every client request that touches
+	// them hangs with them.
+	httpClient := &http.Client{Timeout: apiHTTPTimeout}
 	if proxyURL != "" {
 		proxiedClient, err := makeHTTPClientFromProxy(proxyURL)
 		if err != nil {
