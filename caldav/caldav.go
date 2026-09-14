@@ -385,9 +385,9 @@ func (b *backend) GetCalendarObject(ctx context.Context, path string, req *calda
 
 	calEvtId, _ := strings.CutSuffix(path, "/")
 	calEvtId, _ = strings.CutSuffix(calEvtId, ".ics")
-	calEvtId, _ = strings.CutPrefix(calEvtId, homeSetPath)
+	calEvtId, matched := strings.CutPrefix(calEvtId, homeSetPath)
 	splitIds := strings.Split(calEvtId, "/")
-	if len(splitIds) != 2 || splitIds[0] == "" || splitIds[1] == "" {
+	if !matched || len(splitIds) != 2 || splitIds[0] == "" || splitIds[1] == "" {
 		// Not a calendar-object path under the home set. Previously such paths
 		// parsed to an empty calendar ID, on which the backend then keyed
 		// phantom cache + poller state that 404-spammed the Proton API.
@@ -438,8 +438,8 @@ func (b *backend) ListCalendarObjects(ctx context.Context, path string, req *cal
 	}
 
 	calId, _ := strings.CutSuffix(path, "/")
-	calId, _ = strings.CutPrefix(calId, homeSetPath)
-	if calId == "" || strings.Contains(calId, "/") {
+	calId, matched := strings.CutPrefix(calId, homeSetPath)
+	if !matched || calId == "" || strings.Contains(calId, "/") {
 		// Refuse paths that don't name a calendar under the home set instead of
 		// keying cache and poller state on an empty calendar ID.
 		return nil, webdav.NewHTTPError(http.StatusNotFound, fmt.Errorf("caldav/ListCalendarObjects: path %q is not a calendar under the home set", path))
@@ -465,8 +465,8 @@ func (b *backend) QueryCalendarObjects(ctx context.Context, path string, query *
 	}
 
 	calId, _ := strings.CutSuffix(path, "/")
-	calId, _ = strings.CutPrefix(calId, homeSetPath)
-	if calId == "" || strings.Contains(calId, "/") {
+	calId, matched := strings.CutPrefix(calId, homeSetPath)
+	if !matched || calId == "" || strings.Contains(calId, "/") {
 		return nil, webdav.NewHTTPError(http.StatusNotFound, fmt.Errorf("caldav/QueryCalendarObjects: path %q is not a calendar under the home set", path))
 	}
 
@@ -514,9 +514,9 @@ func (b *backend) PutCalendarObject(ctx context.Context, path string, calendar *
 
 	calEvtId, _ := strings.CutSuffix(path, "/")
 	calEvtId, _ = strings.CutSuffix(calEvtId, ".ics")
-	calEvtId, _ = strings.CutPrefix(calEvtId, homeSetPath)
+	calEvtId, matched := strings.CutPrefix(calEvtId, homeSetPath)
 	splitIds := strings.Split(calEvtId, "/")
-	if len(splitIds) != 2 || splitIds[0] == "" || splitIds[1] == "" {
+	if !matched || len(splitIds) != 2 || splitIds[0] == "" || splitIds[1] == "" {
 		// Not a calendar-object path under the home set. Previously such paths
 		// parsed to an empty calendar ID, on which the backend then keyed
 		// phantom cache + poller state that 404-spammed the Proton API.
@@ -602,9 +602,9 @@ func (b *backend) DeleteCalendarObject(ctx context.Context, path string) error {
 
 	calEvtId, _ := strings.CutSuffix(path, "/")
 	calEvtId, _ = strings.CutSuffix(calEvtId, ".ics")
-	calEvtId, _ = strings.CutPrefix(calEvtId, homeSetPath)
+	calEvtId, matched := strings.CutPrefix(calEvtId, homeSetPath)
 	splitIds := strings.Split(calEvtId, "/")
-	if len(splitIds) != 2 || splitIds[0] == "" || splitIds[1] == "" {
+	if !matched || len(splitIds) != 2 || splitIds[0] == "" || splitIds[1] == "" {
 		return webdav.NewHTTPError(http.StatusNotFound, fmt.Errorf("caldav/DeleteCalendarObject: path %q is not a calendar object under the home set", path))
 	}
 

@@ -11,7 +11,10 @@ import (
 // and poller state on "" and 404-spammed Proton's API for the life of the
 // process (observed via GET /api/calendar/v1//modelevents/latest in the logs).
 // All accessors must reject such paths up front instead of silently accepting
-// them.
+// them. The guards must check provenance (that the home-set prefix actually
+// matched), not just segment shape: relative hrefs — reachable via
+// calendar-multiget, which forwards href.Path from client XML — parse to
+// well-shaped paths that would key phantom state on a crafted calendar ID.
 func TestPathsOutsideHomeSetAreRejected(t *testing.T) {
 	b := &backend{}
 	ctx := context.Background()
@@ -24,6 +27,7 @@ func TestPathsOutsideHomeSetAreRejected(t *testing.T) {
 		"/caldav/calendars/cal1/",    // collection, not an object
 		"",                           // empty path
 		"/nowhere/else/event.ics",    // different tree
+		"cal1/review-event.ics",      // relative href (multiget route)
 	}
 	for _, path := range objectPaths {
 		if _, err := b.GetCalendarObject(ctx, path, nil); !rejected(err) {
@@ -47,6 +51,7 @@ func TestPathsOutsideHomeSetAreRejected(t *testing.T) {
 		"/caldav/calendars//obj.ics",
 		"",
 		"/nowhere/else/event.ics",
+		"cal1", // relative calendar path (multiget route)
 	}
 	for _, path := range calendarPaths {
 		if _, err := b.ListCalendarObjects(ctx, path, nil); !rejected(err) {
